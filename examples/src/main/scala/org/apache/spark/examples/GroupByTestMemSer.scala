@@ -26,17 +26,18 @@ import org.apache.spark.storage.StorageLevel
 /**
  * Usage: GroupByTest [numMappers] [numKVPairs] [KeySize] [numReducers]
  */
-object GroupByTest {
+object GroupByTestMemSer {
   def main(args: Array[String]) {
     val spark = SparkSession
       .builder
-      .appName("GroupBy Test")
+      .appName("GroupBy Test Mem Ser")
       .getOrCreate()
 
     val numMappers = if (args.length > 0) args(0).toInt else 2
     val numKVPairs = if (args.length > 1) args(1).toInt else 1000
     val valSize = if (args.length > 2) args(2).toInt else 1000
     val numReducers = if (args.length > 3) args(3).toInt else numMappers
+    val numParts = if (args.length > 4) args(4).toInt else numMappers
 
     val pairs1 = spark.sparkContext.parallelize(0 until numMappers, numMappers).flatMap { p =>
       val ranGen = new Random
@@ -47,16 +48,16 @@ object GroupByTest {
         arr1(i) = (ranGen.nextInt(Int.MaxValue), byteArr)
       }
       arr1
-    // }.persist(StorageLevel.MEMORY_ONLY_SER)
+    }.persist(StorageLevel.MEMORY_ONLY_SER)
     // }.persist(StorageLevel.MEMORY_AND_DISK)
     // }.persist(StorageLevel.DISK_ONLY)
-    }.cache()
+    // }.cache()
     // Enforce that everything has been calculated and in cache
     pairs1.count()
 
     // println(s"<zzh> ${pairs1}")
-    println(s"<zzh> storage StorageLevel.MEMORY_ONLY")
-    // println(s"<zzh> storage StorageLevel.MEMORY_ONLY_SER")
+    // println(s"<zzh> storage StorageLevel.MEMORY_ONLY")
+    println(s"<zzh> storage StorageLevel.MEMORY_ONLY_SER")
     // println(s"<zzh> storage StorageLevel.MEMORY_AND_DISK")
     // println(s"<zzh> storage StorageLevel.DISK_ONLY")
     println(pairs1.groupByKey(numReducers).count())

@@ -24,13 +24,14 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.storage.StorageLevel
 
 /**
- * Usage: GroupByTest [numMappers] [numKVPairs] [KeySize] [numReducers]
+ * Usage: GroupByTestName [numMappers] [numKVPairs] [KeySize] [numReducers]
  */
-object GroupByTest {
+object GroupByTestName {
   def main(args: Array[String]) {
+    val rand = new Random
     val spark = SparkSession
       .builder
-      .appName("GroupBy Test")
+      .appName(s"GroupBy Test ${rand.nextLong}")
       .getOrCreate()
 
     val numMappers = if (args.length > 0) args(0).toInt else 2
