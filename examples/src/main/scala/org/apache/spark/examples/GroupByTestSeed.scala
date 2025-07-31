@@ -24,7 +24,7 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.storage.StorageLevel
 
 /**
- * Usage: GroupByTestSeed [numMappers] [numKVPairs] [KeySize] [numReducers]
+ * Usage: GroupByTestSeed [numMappers] [numKVPairs] [KeySize] [numReducers] [seed] [policy] [randMax]
  */
 object GroupByTestSeed {
   def main(args: Array[String]) {

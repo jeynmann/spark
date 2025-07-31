@@ -24,7 +24,7 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.storage.StorageLevel
 
 /**
- * Usage: GroupByTestSeed [numMappers] [numKVPairs] [KeySize] [numReducers]
+ * Usage: GroupByTestSkew [numMappers] [numKVPairs] [KeySize] [numReducers] [seed] [policy] [randMax] [numSkew] [sizeSkew]
  */
 object GroupByTestSkew {
   def main(args: Array[String]) {
@@ -37,26 +37,39 @@ object GroupByTestSkew {
     val numKVPairs = if (args.length > 1) args(1).toInt else 1000
     val valSize = if (args.length > 2) args(2).toInt else 1000
     val numReducers = if (args.length > 3) args(3).toInt else numMappers
-    val kSkew = if (args.length > 4) args(4).toInt.min(numKVPairs) else numKVPairs
-    val numSkew = if (args.length > 5) args(5).toInt else 2
-    val policy = if (args.length > 6) args(6) else "m"
-    val seed = if (args.length > 7) args(7).toLong else 100000921L
-    val randMax = if (args.length > 8) args(8).toInt else Int.MaxValue
+    val seed = if (args.length > 4) args(4).toLong else 100000921L
+    val policy = if (args.length > 5) args(5) else "m"
+    val randMax = if (args.length > 6) args(6).toInt else Int.MaxValue
+    val numSkew = if (args.length > 7) args(7).toInt else numMappers
+    val sizeSkew = if (args.length > 8) args(8).toLong else (100L << 20)
 
-    // numMappers * numKVPairs
+    val numSkewPerMapper = numSkew / numMappers
+    val numSkewRemainder = numSkew % numMappers
+    val numKVPerSkew = (sizeSkew / valSize).toInt
     val pairs0 = spark.sparkContext.parallelize(0 until numMappers, numMappers).flatMap { p =>
-      val ranGen = new Random(seed)
-      val arr1 = new Array[(Int, Array[Byte])](numKVPairs)
-      val range = Array(0, kSkew)
-      while (range(1) <= numKVPairs) {
+      val ranGen = new Random(seed + p)
+      val myNumSkew = if (p < numSkewRemainder) numSkewPerMapper + 1 else numSkewPerMapper
+      val numKVSkew = myNumSkew * numKVPerSkew
+      val numKVNonSkew = (numKVPairs - numKVSkew).max(0)
+      val numKVTotal = numKVNonSkew + numKVSkew
+      val arr1 = new Array[(Int, Array[Byte])](numKVTotal)
+
+      def genVal(): Array[Byte] = {
         val byteArr = new Array[Byte](valSize)
         ranGen.nextBytes(byteArr)
-        for (i <- range(0) until range(1).min(numKVPairs)) {
-            arr1(i) = (range(0) + p / numSkew, byteArr)
+        byteArr
+      }
+
+      for (i <- 0 until numKVNonSkew) {
+        arr1(i) = (ranGen.nextInt(randMax), genVal())
+      }
+
+      var skewKey = 0
+      for (i <- 0 until numKVSkew) {
+        if (i % numKVPerSkew == 0) {
+          skewKey = ranGen.nextInt(randMax)
         }
-        val d = range(1) - range(0)
-        range(0) = range(1)
-        range(1) = (range(1) + kSkew)
+        arr1(numKVNonSkew + i) = (skewKey, genVal())
       }
       arr1
     }
