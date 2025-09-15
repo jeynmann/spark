@@ -21,7 +21,7 @@ package org.apache.spark.examples
 import java.util.Random
 
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.storage.StorageLevel
+// import org.apache.spark.storage.StorageLevel
 
 /**
  * Usage: GroupByTestName [numMappers] [numKVPairs] [KeySize] [numReducers]
